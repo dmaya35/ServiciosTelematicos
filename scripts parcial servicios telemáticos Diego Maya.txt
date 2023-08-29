@@ -1,0 +1,105 @@
+#Diego Maya Perea - 2205754 - Primer parcial
+#Scripts segunda parte parcial práctico, autenticación mediante el uso de PAM (Plugable Authentication Module)
+
+#Primero hay que entrar a la máquina servidor y loguearse como súper usuario
+
+#Luego instalar el módulo/servicio de PAM mediante el siguiente comando 
+
+yum install mod_authnz_pam -y
+
+#Editamos un archivo de configuración PAM que se encuentra en la carpeta conf.modules.d
+#que es el 55-authnz_pam.conf, donde vamos a descomentar la línea que trae por defecto para que se cargue 
+#este módulo PAM cada vez que se cargue el servicio.
+
+vim /etc/httpd/conf.modules.d/55-authnz_pam.conf
+
+#Se descomentó la siguiente línea
+
+LoadModule authnz_pam_module modules/mod_authnz_pam.so
+
+#Después de estas modificaciones, reiniciamos el servicio httpd para que se guarden los cambios
+
+service httpd restart
+
+
+#Editamos la configuración del directorio usando el siguiente comando
+
+vim /etc/httpd/conf.d/authnz_pam.conf
+
+#En este archivo authnz_pam.conf pondremos la configuración del directorio de la autenticación
+#que estamos trabajando, dándole ruta al archivo privado que creamos para que se 
+#logueen los usuarios autorizados
+
+<Directory "/var/www/html/archivos_privados">
+    AuthType Basic
+    AuthName "PAM Authentication"
+    AuthBasicProvider PAM
+    AuthPAMService httpd-auth
+    Require valid-user
+</Directory>
+
+
+#Nos dirijimos a otro archivo de configuración PAM donde editaremos los permisos para la lista
+#de usuarios denegados, permitiendo que SOLO puedan acceder a la página html que crearemos para trabajar
+#con PAM aquellos usuarios que están por fuera de esta lista.
+
+vim /etc/pam.d/httpd-auth
+
+#Especificamos la ruta en donde se encuentra la lista denyusers y que sea obligatorio una verificación
+#de que los usuarios que se encuentran en esa lista no puedan acceder
+#poniendo los siguientes comandos
+
+auth       required     pam_listfile.so item=user sense=deny file=/etc/httpd/conf.d/denyusers onerr=succeed
+auth       include      system-auth
+account    include      system-auth
+
+
+#Ahora editaremos la lista de usuarios denegados, donde escribiremos los usuarios que NO queremos que
+#tengan acceso al directorio archivos_privados que creamos
+
+vim /etc/httpd/conf.d/denyusers
+
+#En mi caso, sólo permito que María entre al directorio privado, por lo que bloqueo al resto de usuarios
+
+root
+juan
+pedro
+
+#Ahora daremos el permiso 640 a la lista de denegados, lo que permite que sea leída y escrita por módulos PAM 
+
+chmod 640 /etc/httpd/conf.d/denyusers
+
+#Luego de estas modificaciones, reiniciamos el servicio httpd para que se guarden los cambios
+
+service httpd restart
+
+#Por último, creamos el directorio archivos_privados y dentro de este la página html donde se mostrará 
+#el acceso exitoso a los usuarios que están por fuera de la lista denyusers en la siguiente ruta
+
+mkdir /var/www/html/archivos_privados
+
+#Luego creamos la página html dentro del directorio y le pones un mensaje adentro.
+#Esto se hace con el siguiente comando (y le damos permisos 755)
+
+vim /var/www/html/archivos_privados/index.html
+
+Archivo privado de PAM, logueaste exitosamente
+
+chmod 755 /var/www/html/archivos_privados/index.html
+
+#Esto sería todo lo realizado para el segundo punto 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
