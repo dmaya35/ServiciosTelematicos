@@ -90,6 +90,19 @@ chmod 755 /var/www/html/archivos_privados/index.html
 #Esto sería todo lo realizado para el segundo punto 
 
 
+#Para el tercer punto de NGROK, instalamos por fuera de la máquina servidor el siguiente comando
+
+vagrant plugin install vagrant-share
+
+#Después descargamos el ngrok de internet y ponemos su carpeta ejecutable dentro de la carpeta prueba, para abrirlo desde el mismo cmd
+#de donde se trabajan las máquinas virtuales
+#Despúes accedemos a la ruta de donde está el ngrok, ponemos el comando ngrok y luego otro comando para realizar el servicio ngrok y 
+#obtener el link de la página local para verla por fuera
+
+ngrok http 192.168.50.3:80
+
+#Eso sería todo 
+
 
 
 
