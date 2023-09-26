@@ -1,0 +1,106 @@
+#Diego Maya Perea - 2205754 - Segundo parcial
+
+#Scripts segundo parcial práctico
+
+#Primero hay que entrar a la máquina firewall (servidor) y loguearse como súper usuario y activar el servicio
+
+service firewalld start
+
+#En la máquina firewall, configuramos las zonas que queden de tal manera que; en la zona dmz
+#esté la interfaz eht1, en la zona internal la eth2 y en la zona public dejamos la eth0.
+#Para hacer esto debemos verificar las zonas con el siguiente comando
+
+firewall-cmd --get-active-zones
+
+#Sí todas las interfaces se encuentran en la zona public, debemos agregarlas a las que 
+#corresponden utilizando los siguientes comandos
+
+firewall-cmd --zone=public --remove-interface=eth1
+firewall-cmd --zone=public --remove-interface=eth2
+firewall-cmd --zone=dmz --add-interface=eth1 --permanent
+firewall-cmd --zone=internal --add-interface=eth2 --permanent
+
+#Reiniciamos para guardar los cambios
+
+firewall-cmd --reload
+
+#Luego listamos detalladamente las zonas que utilizaremos
+
+firewall-cmd --zone=dmz --list-all
+firewall-cmd --zone=internal --list-all
+
+#En la zona dmz debe de estar la interfaz eth1, ahora agregaramos el enmascaramiento, los servicios
+#y los puertos
+
+firewall-cmd --zone=dmz --add-masquerade --permanent
+firewall-cmd --zone=dmz --add-service=ftp --permanent
+firewall-cmd --zone=dmz --add-service=http --permanent
+firewall-cmd --zone=dmz --add-service=https --permanent
+firewall-cmd --zone=dmz --add-forward-port=port=21:proto=tcp:toport=21:toaddr=192.168.50.2 --permanent
+firewall-cmd --permanent --zone=dmz --add-port=21/tcp
+
+#Y para la zona internal, agregamos el enmascaramiento y luego un reinicio para guardar los cambios
+
+firewall-cmd --zone=internal --add-masquerade --permanent
+firewall-cmd --reload
+
+
+#Luego en la máquina de ftp seguro (cliente), nos logueamos como súper usuario
+#y creamos el certificado y su contraseña usandos los siguientes comandos
+
+cd /etc/pki/tls/certs
+openssl req -x509 -nodes -newkey rsa:2048 -keyout vsftpd.pem -out vsftpd.pem -days 3650
+
+#Ingresamos la información del certificado y luego le damos permisos al archivo 
+
+chmod 600 vsftpd.pem
+
+#Luego ingresamos al archivo de configuración del servicio vsftpd
+
+vim /etc/vsftpd/vsftpd.conf
+
+#Añadimos las siguientes configuraciones al final del archivo
+
+#enable SSL/TLS
+ssl_enable=YES
+allow_anon_ssl=NO
+force_local_data_ssl=YES
+force_local_logins_ssl=YES
+ssl_tlsv1=YES
+ssl_sslv2=NO
+ssl_sslv3=NO
+ssl_ciphers=HIGH
+rsa_cert_file=/etc/pki/tls/certs/vsftpd.pem
+rsa_private_key_file=/etc/pki/tls/certs/vsftpd.pem
+#passive ports with any range 
+pasv_enable=YES
+pasv_min_port=30000
+pasv_max_port=31000
+pasv_address=172.16.0.3
+
+#También verificamos las configuraciones de enjaulamiento y en la lista, borramos los usuarios
+#que se encuentren enjaulados y permitimos el NO enjaulamiento 
+
+chroot_local_user=NO
+chroot_list_enable=YES
+chroot_list_file=/etc/vsftpd/chroot_list
+
+#Guardamos las configuraciones y luego prendemos el servicio vsftpd
+
+service vsftpd start
+
+#Luego entramos a FileZilla, ingresamos el servidor (la dirección ip de salida del firewall, en este caso
+#172.16.0.3), usuario vagrant y contraseña también y por el puerto 21, establecemos la conexión y mandamos
+#archivos desde el pc al directorio vagrant.
+
+#Para verificar que los datos y rutas de envío están cifradas ambas cosas, podemos hacer un seguimiento a través
+#de Wireshark, filtrando por ftp y haciendo una transferencia en FileZilla mientras el Wireshark captura, y se podrá
+#notar que cuando envía, recibe, borra o transfiere de regreso, se muestran caracteres especiales de cifrado como un hash
+
+
+
+
+
+
+
+
